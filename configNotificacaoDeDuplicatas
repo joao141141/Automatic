@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <style>
+        body { padding: 10px; font-family: Arial, sans-serif; }
+        label { font-weight: bold; display: block; margin-top: 12px;}
+        input[type="text"], textarea { width: 95%; padding: 5px; margin-bottom: 3px;}
+        textarea { height: 80px; }
+        .checkbox-group { margin-top:10px; margin-bottom:10px; }
+        button { margin-right: 10px; margin-top: 20px; }
+        #status { margin-top: 15px; font-weight: bold; }
+        .success { color: green; } .error { color: red; }
+        .description { font-size: 0.8em; color: #666; margin-bottom: 8px;}
+    </style>
+</head>
+<body>
+    <h4>Configurar Notificação de Duplicatas por Email</h4>
+
+    <div class="checkbox-group">
+        <input type="checkbox" id="enableDuplicateNotification" name="enableDuplicateNotification">
+        <label for="enableDuplicateNotification" style="display:inline; font-weight:normal;">Habilitar Notificações Automáticas de Duplicatas</label>
+    </div>
+
+    <label for="sheetsToScanString">Abas para Verificar (separadas por vírgula, opcional):</label>
+    <textarea id="sheetsToScanString" name="sheetsToScanString" placeholder="Deixe em branco para verificar todas as abas válidas"></textarea>
+    <p class="description">Se preenchido, somente estas abas serão verificadas pela notificação automática.</p>
+
+    <label for="emailSubject">Assunto do Email de Notificação:</label>
+    <input type="text" id="emailSubject" name="emailSubject" required>
+
+
+    <div>
+        <button class="action" onclick="salvar()">Salvar Configuração</button>
+        <button onclick="google.script.host.close()">Cancelar</button>
+    </div>
+    <div id="status"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            google.script.run
+                .withSuccessHandler(function(config) {
+                    document.getElementById('enableDuplicateNotification').checked = (config.enableDuplicateNotification === true || config.enableDuplicateNotification === 'true');
+                    document.getElementById('sheetsToScanString').value = config.sheetsToScanString || '';
+                    document.getElementById('emailSubject').value = config.emailSubject || 'Alerta de Duplicatas Encontradas na Planilha';
+                })
+                .withFailureHandler(showError)
+                .carregarConfigNotificacaoDuplicatas();
+        });
+
+        function salvar() {
+            var config = {
+                enableDuplicateNotification: document.getElementById('enableDuplicateNotification').checked,
+                sheetsToScanString: document.getElementById('sheetsToScanString').value, // Pass string as is
+                emailSubject: document.getElementById('emailSubject').value.trim()
+            };
+
+            if (config.enableDuplicateNotification && !config.emailSubject) {
+                 alert("O assunto do email é obrigatório se as notificações estiverem habilitadas.");
+                 return;
+            }
+
+            showStatus('Salvando...', ''); document.querySelector('button.action').disabled = true;
+            google.script.run.withSuccessHandler(showResult).withFailureHandler(showError).salvarConfigNotificacaoDuplicatas(config);
+        }
+
+        function showResult(result) { showStatus(result.message, result.success ? 'success' : 'error'); if(result.success) { setTimeout(google.script.host.close, 1500); } else { document.querySelector('button.action').disabled = false; } }
+        function showError(error) { showStatus("Erro: " + (error.message || error), 'error'); document.querySelector('button.action').disabled = false; }
+        function showStatus(message, className) { const statusDiv = document.getElementById('status'); statusDiv.textContent = message; statusDiv.className = className; }
+    </script>
+</body>
+</html>
