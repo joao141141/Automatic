@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <style>
+        label { font-weight: bold; display: block; margin-top: 10px;}
+        input[type="date"], input[type="text"] { width: 90%; margin-bottom: 10px;}
+        button { margin-right: 10px; margin-top: 15px; }
+        .description { font-size: 0.9em; color: #666; margin-bottom: 15px;}
+         #status { margin-top: 10px; font-style: italic; }
+    </style>
+</head>
+<body>
+    <h4>Filtrar Dados da Aba Ativa por Data</h4>
+    <p class="description">Selecione um intervalo de datas e informe o nome exato do cabeçalho da coluna que contém as datas na aba ativa.</p>
+
+    <label for="colunaData">Nome da Coluna de Data:</label>
+    <input type="text" id="colunaData" name="colunaData" placeholder="Ex: Data Pedido" required>
+
+    <label for="dataInicio">Data Início:</label>
+    <input type="date" id="dataInicio" name="dataInicio" required>
+
+    <label for="dataFim">Data Fim:</label>
+    <input type="date" id="dataFim" name="dataFim" required>
+
+    <div>
+        <button class="action" onclick="aplicarFiltro()">Aplicar Filtro</button>
+        <button onclick="google.script.host.close()">Cancelar</button>
+    </div>
+     <div id="status"></div>
+
+    <script>
+        function aplicarFiltro() {
+            var colunaData = document.getElementById('colunaData').value.trim();
+            var dataInicio = document.getElementById('dataInicio').value;
+            var dataFim = document.getElementById('dataFim').value;
+            var statusDiv = document.getElementById('status');
+
+            if (!colunaData) {
+                alert("Por favor, informe o nome da coluna de data.");
+                return;
+            }
+             if (!dataInicio || !dataFim) {
+                 alert("Por favor, selecione as datas de início e fim.");
+                 return;
+             }
+              if (new Date(dataInicio) > new Date(dataFim)) {
+                  alert("A data de início não pode ser posterior à data de fim.");
+                  return;
+              }
+
+             statusDiv.textContent = 'Filtrando...';
+             document.querySelector('button.action').disabled = true;
+
+            google.script.run
+                .withSuccessHandler(function() {
+                    google.script.host.close(); // Close on success
+                })
+                .withFailureHandler(function(error) {
+                    alert("Erro ao aplicar filtro: " + error.message);
+                     statusDiv.textContent = 'Erro ao filtrar.';
+                    document.querySelector('button.action').disabled = false; // Re-enable
+                })
+                .filtrarPorIntervaloData(dataInicio, dataFim, colunaData);
+        }
+
+         // Set default dates (optional) - today for end, 30 days ago for start
+         document.addEventListener('DOMContentLoaded', (event) => {
+            const today = new Date();
+            const pastDate = new Date();
+            pastDate.setDate(today.getDate() - 30);
+
+            const formatDate = (date) => {
+                let d = new Date(date),
+                    month = '' + (d.getMonth() + 1),
+                    day = '' + d.getDate(),
+                    year = d.getFullYear();
+                if (month.length < 2) month = '0' + month;
+                if (day.length < 2) day = '0' + day;
+                return [year, month, day].join('-');
+            }
+            document.getElementById('dataFim').value = formatDate(today);
+            document.getElementById('dataInicio').value = formatDate(pastDate);
+        });
+
+    </script>
+</body>
+</html>
