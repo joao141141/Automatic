@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <style>
+        body { padding: 10px; font-family: Arial, sans-serif; }
+        label { font-weight: bold; display: block; margin-top: 12px;}
+        input[type="text"], textarea { width: 95%; padding: 5px; margin-bottom: 5px;}
+        textarea { height: 120px; }
+        button { margin-right: 10px; margin-top: 20px; }
+        #status { margin-top: 15px; font-weight: bold; }
+        .success { color: green; } .error { color: red; }
+        .description { font-size: 0.9em; color: #666; margin-bottom: 15px;}
+    </style>
+</head>
+<body>
+    <h4>Configurar Padronização de Formato de Data</h4>
+    <p class="description">
+        Defina as colunas onde o formato de data deve ser verificado e padronizado, e o formato de data desejado.
+    </p>
+
+    <label for="colHeadersString">Cabeçalhos das Colunas para Padronizar (um por linha):</label>
+    <textarea id="colHeadersString" name="colHeadersString" placeholder="Exemplo:&#10;Data de Início&#10;Data de Entrega&#10;Vencimento"></textarea>
+
+    <label for="targetFormat">Formato de Data Alvo:</label>
+    <input type="text" id="targetFormat" name="targetFormat" placeholder="Ex: dd/MM/yyyy ou MM-dd-yyyy">
+    <p style="font-size:0.8em; color:#666;">Use padrões como 'dd/MM/yyyy', 'MM/dd/yyyy', 'yyyy-MM-dd'. Veja <a href="https://developers.google.com/apps-script/reference/utilities/utilities#formatdatepattern" target="_blank">aqui</a> para mais padrões.</p>
+
+
+    <div>
+        <button class="action" onclick="salvar()">Salvar Configuração</button>
+        <button onclick="google.script.host.close()">Cancelar</button>
+    </div>
+    <div id="status"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            google.script.run
+                .withSuccessHandler(function(config) {
+                    document.getElementById('colHeadersString').value = config.colHeadersString || '';
+                    document.getElementById('targetFormat').value = config.targetFormat || 'dd/MM/yyyy';
+                })
+                .withFailureHandler(showError)
+                .carregarConfigFormatacaoData();
+        });
+
+        function salvar() {
+            var config = {
+                colHeadersString: document.getElementById('colHeadersString').value, // Pass string as is
+                targetFormat: document.getElementById('targetFormat').value.trim()
+            };
+            if (!document.getElementById('colHeadersString').value.trim()) {
+                 alert("Informe ao menos um cabeçalho de coluna."); return;
+            }
+            if (!config.targetFormat) {
+                 alert("O formato de data alvo é obrigatório."); return;
+            }
+
+            showStatus('Salvando...', '');
+            document.querySelector('button.action').disabled = true;
+            google.script.run
+                .withSuccessHandler(showResult)
+                .withFailureHandler(showError)
+                .salvarConfigFormatacaoData(config);
+        }
+
+        function showResult(result) {
+            showStatus(result.message, result.success ? 'success' : 'error');
+            if(result.success) { setTimeout(google.script.host.close, 1500); }
+            else { document.querySelector('button.action').disabled = false; }
+        }
+        function showError(error) {
+            showStatus("Erro: " + (error.message || error), 'error');
+            document.querySelector('button.action').disabled = false;
+        }
+        function showStatus(message, className) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = className;
+        }
+    </script>
+</body>
+</html>
