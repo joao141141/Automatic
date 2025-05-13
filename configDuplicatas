@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <style>
+        label { font-weight: bold; display: block; margin-top: 12px;}
+        input[type="text"], select { width: 95%; padding: 5px; margin-bottom: 5px;}
+        button { margin-right: 10px; margin-top: 20px; }
+        #status { margin-top: 15px; font-weight: bold; }
+        .success { color: green; } .error { color: red; }
+        .description { font-size: 0.9em; color: #666; margin-bottom: 15px;}
+    </style>
+</head>
+<body>
+    <h4>Configurar Detecção de Duplicatas</h4>
+    <p class="description">
+        Defina qual coluna usar para identificar linhas duplicadas e como elas devem ser tratadas.
+    </p>
+
+    <label for="checkColHeader">Cabeçalho da Coluna para Verificar (Obrigatório):</label>
+    <input type="text" id="checkColHeader" name="checkColHeader" placeholder="Ex: Processo, CPF, Email" required>
+
+    <label for="action">Ação ao Encontrar Duplicatas:</label>
+    <select id="action" name="action">
+        <option value="HIGHLIGHT">Destacar Linhas Duplicadas</option>
+        <option value="LIST">Listar Duplicatas em Nova Aba</option>
+    </select>
+
+    <div>
+        <button class="action" onclick="salvar()">Salvar Configuração</button>
+        <button onclick="google.script.host.close()">Cancelar</button>
+    </div>
+    <div id="status"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            google.script.run
+                .withSuccessHandler(function(config) {
+                    document.getElementById('checkColHeader').value = config.checkColHeader || '';
+                    document.getElementById('action').value = config.action || 'HIGHLIGHT';
+                })
+                .withFailureHandler(showError)
+                .carregarConfigDuplicatas();
+        });
+
+        function salvar() {
+            var config = {
+                checkColHeader: document.getElementById('checkColHeader').value.trim(),
+                action: document.getElementById('action').value
+            };
+            if (!config.checkColHeader) { alert("O cabeçalho da coluna é obrigatório."); return; }
+            showStatus('Salvando...', '');
+            document.querySelector('button.action').disabled = true;
+            google.script.run.withSuccessHandler(showResult).withFailureHandler(showError).salvarConfigDuplicatas(config);
+        }
+
+        function showResult(result) {
+            showStatus(result.message, result.success ? 'success' : 'error');
+            if(result.success) { setTimeout(google.script.host.close, 1500); }
+            else { document.querySelector('button.action').disabled = false; }
+        }
+        function showError(error) { showStatus("Erro: " + error.message, 'error'); document.querySelector('button.action').disabled = false; }
+        function showStatus(message, className) { const statusDiv = document.getElementById('status'); statusDiv.textContent = message; statusDiv.className = className; }
+    </script>
+</body>
+</html>
