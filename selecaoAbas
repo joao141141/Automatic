@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <style>
+        #sheet-list { max-height: 250px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; margin-bottom: 15px; }
+        .checkbox-group { display: block; margin-bottom: 5px; }
+        button { margin-right: 10px; margin-top: 10px; }
+        #status { margin-top: 10px; font-weight: bold; }
+        .error { color: red; }
+    </style>
+    <? var sheetNames = sheetNames || []; ?>
+    <? var targetFunction = targetFunction || ''; ?>
+</head>
+<body>
+    <h4>Selecionar Abas</h4>
+    <p>Marque as abas nas quais deseja executar a ação.</p>
+
+    <div id="sheet-list">
+        <? if (sheetNames.length > 0) { ?>
+            <? sheetNames.forEach(function(name) { ?>
+                <label class="checkbox-group">
+                    <input type="checkbox" name="selectedSheet" value="<?= name ?>" checked> <?= name ?>
+                </label>
+            <? }); ?>
+        <? } else { ?>
+            <p>Nenhuma aba disponível para seleção.</p>
+        <? } ?>
+    </div>
+
+    <input type="hidden" id="targetFunction" value="<?= targetFunction ?>">
+
+    <div>
+        <button class="action" onclick="confirmSelection()" <?= sheetNames.length === 0 ? 'disabled' : '' ?> >Confirmar Seleção</button>
+        <button onclick="google.script.host.close()">Cancelar</button>
+    </div>
+    <div id="status"></div>
+
+    <script>
+        function confirmSelection() {
+            var checkboxes = document.querySelectorAll('input[name="selectedSheet"]:checked');
+            var selectedNames = [];
+            checkboxes.forEach(function(checkbox) {
+                selectedNames.push(checkbox.value);
+            });
+
+            var targetFunc = document.getElementById('targetFunction').value;
+            var statusDiv = document.getElementById('status');
+
+            if (selectedNames.length === 0) {
+                alert("Selecione ao menos uma aba.");
+                return;
+            }
+            if (!targetFunc) {
+                 alert("Erro interno: Função de destino não definida.");
+                 return;
+            }
+
+            statusDiv.textContent = 'Processando...';
+            statusDiv.className = '';
+            document.querySelector('button.action').disabled = true;
+
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    // Server function 'processarSelecaoAbas' now directly calls the target
+                    // We just close the dialog if the call was initiated successfully server-side
+                     if(result && !result.success) {
+                         // Show error message from server if processing failed there
+                         showError({ message: result.message });
+                     } else {
+                          google.script.host.close(); // Close if successful call initiated
+                     }
+                })
+                .withFailureHandler(showError)
+                .processarSelecaoAbas(selectedNames, targetFunc);
+        }
+
+         function showError(error) {
+             const statusDiv = document.getElementById('status');
+             statusDiv.textContent = "Erro: " + (error.message || error); // Display error message
+             statusDiv.className = 'error';
+             document.querySelector('button.action').disabled = false; // Re-enable button
+         }
+    </script>
+</body>
+</html>
