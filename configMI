@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <style>
+        label { font-weight: bold; display: block; margin-top: 12px;}
+        input[type="text"] { width: 95%; padding: 5px; margin-bottom: 5px;}
+        button { margin-right: 10px; margin-top: 20px; }
+        #status { margin-top: 15px; font-weight: bold; }
+        .success { color: green; }
+        .error { color: red; }
+        .description { font-size: 0.9em; color: #666; margin-bottom: 15px;}
+    </style>
+</head>
+<body>
+    <h4>Configurar Funcionalidades de MI</h4>
+    <p class="description">Defina aqui os nomes das abas e colunas usados pelas funções "Adicionar Nova MI" e "Linkar Documento à MI".</p>
+
+    <label for="miSheetName">Nome Exato da Aba de MIs:</label>
+    <input type="text" id="miSheetName" name="miSheetName" required>
+
+    <label for="driveFolderId">ID da Pasta do Google Drive para Documentos:</label>
+    <input type="text" id="driveFolderId" name="driveFolderId" placeholder="Cole o ID da URL da pasta" required>
+
+    <label for="idColHeader">Cabeçalho Coluna Identificadora MI (Obrigatório):</label>
+    <input type="text" id="idColHeader" name="idColHeader" placeholder="Ex: Num MI, ID Registro" required>
+
+     <label for="subjectColHeader">Cabeçalho Coluna Assunto MI (Opcional):</label>
+    <input type="text" id="subjectColHeader" name="subjectColHeader" placeholder="Deixe em branco se não usar">
+
+    <label for="linkColHeader">Cabeçalho Coluna Link Documento (Obrigatório):</label>
+    <input type="text" id="linkColHeader" name="linkColHeader" placeholder="Ex: Link Arquivo, Documento" required>
+
+
+    <div>
+        <button class="action" onclick="salvar()">Salvar Configurações</button>
+        <button onclick="google.script.host.close()">Cancelar</button>
+    </div>
+    <div id="status"></div>
+
+    <script>
+        // Load existing config when dialog opens
+        document.addEventListener('DOMContentLoaded', function() {
+            google.script.run
+                .withSuccessHandler(function(config) {
+                    document.getElementById('miSheetName').value = config.miSheetName || '';
+                    document.getElementById('driveFolderId').value = config.driveFolderId || '';
+                    document.getElementById('idColHeader').value = config.idColHeader || '';
+                    document.getElementById('linkColHeader').value = config.linkColHeader || '';
+                    document.getElementById('subjectColHeader').value = config.subjectColHeader || ''; // Load subject header
+                })
+                 .withFailureHandler(function(err) {
+                     document.getElementById('status').textContent = "Erro ao carregar config: " + err.message;
+                     document.getElementById('status').className = 'error';
+                 })
+                .carregarConfiguracaoMI();
+        });
+
+        function salvar() {
+            var config = {
+                miSheetName: document.getElementById('miSheetName').value.trim(),
+                driveFolderId: document.getElementById('driveFolderId').value.trim(),
+                idColHeader: document.getElementById('idColHeader').value.trim(),
+                linkColHeader: document.getElementById('linkColHeader').value.trim(),
+                 subjectColHeader: document.getElementById('subjectColHeader').value.trim() // Get subject header
+            };
+            var statusDiv = document.getElementById('status');
+
+            // Basic validation
+            if (!config.miSheetName || !config.driveFolderId || !config.idColHeader || !config.linkColHeader) {
+                alert("Os campos obrigatórios (Aba, ID Pasta, Coluna ID, Coluna Link) não podem estar vazios.");
+                return;
+            }
+
+            statusDiv.textContent = 'Salvando...';
+            statusDiv.className = '';
+            document.querySelector('button.action').disabled = true;
+
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if(result.success) {
+                        statusDiv.textContent = result.message;
+                        statusDiv.className = 'success';
+                         // Close dialog after success
+                         setTimeout(function() { google.script.host.close(); }, 1500);
+                    } else {
+                        statusDiv.textContent = "Falha ao salvar: " + result.message;
+                        statusDiv.className = 'error';
+                         document.querySelector('button.action').disabled = false;
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    statusDiv.textContent = "Erro inesperado: " + error.message;
+                    statusDiv.className = 'error';
+                    document.querySelector('button.action').disabled = false;
+                })
+                .salvarConfiguracaoMI(config);
+        }
+    </script>
+</body>
+</html>
