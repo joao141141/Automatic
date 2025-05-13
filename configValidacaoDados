@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <style>
+        body { padding: 10px; font-family: Arial, sans-serif; }
+        fieldset { border: 1px solid #ccc; padding: 10px; margin-bottom: 15px; border-radius: 5px; }
+        legend { font-weight: bold; color: #4285f4; }
+        label { font-weight: bold; display: block; margin-top: 8px;}
+        input[type="text"], select { width: 95%; padding: 6px; margin-bottom: 5px; box-sizing: border-box;}
+        .checkbox-group { margin-top:10px; margin-bottom:10px; }
+        button { margin-right: 10px; margin-top: 15px; }
+        .action-button { margin-top: 5px; margin-bottom: 10px;}
+        #status, #ruleStatus { margin-top: 10px; font-weight: bold; }
+        .success { color: green; } .error { color: red; }
+        .description { font-size: 0.85em; color: #555; margin-bottom: 8px;}
+        #currentRulesContainer { margin-top: 20px; }
+        .rule-item { border-bottom: 1px dotted #eee; padding: 8px 0; display: flex; justify-content: space-between; align-items: center; }
+        .rule-details { flex-grow: 1; }
+        .rule-item button { font-size:0.8em; padding: 3px 6px; margin-left:10px; }
+    </style>
+</head>
+<body>
+    <h4>Configurar Regras de Validação de Dados</h4>
+
+    <fieldset>
+        <legend>Adicionar Nova Regra (Lista de um Intervalo)</legend>
+        <p class="description">Cria uma lista suspensa em uma coluna com base nos valores de um intervalo em outra aba/planilha.</p>
+
+        <label for="sheetName">Nome da Aba onde aplicar a validação:</label>
+        <input type="text" id="sheetName" placeholder="Ex: Dados de Entrada" required>
+
+        <label for="columnHeader">Cabeçalho da Coluna onde aplicar a validação:</label>
+        <input type="text" id="columnHeader" placeholder="Ex: Status, Categoria" required>
+
+        <label for="sourceRange">Intervalo de Origem da Lista (Ex: 'NomesAba'!A1:A10):</label>
+        <input type="text" id="sourceRange" placeholder="'Nomes da Aba'!A1:A10" required>
+        <p class="description">Inclua o nome da aba e as aspas simples se o nome da aba tiver espaços.</p>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="allowInvalid" name="allowInvalid" checked>
+            <label for="allowInvalid" style="display:inline; font-weight:normal;">Permitir valores inválidos (mostrar aviso)</label>
+        </div>
+        <p class="description">Desmarcar para rejeitar entradas que não estão na lista.</p>
+
+        <label for="helpText">Texto de Ajuda (Opcional):</label>
+        <input type="text" id="helpText" placeholder="Ex: Selecione um item da lista">
+
+        <button class="action" onclick="adicionarRegra()">Adicionar Regra de Lista</button>
+        <div id="ruleStatus"></div>
+    </fieldset>
+
+    <div id="currentRulesContainer">
+        <legend style="font-size:1.1em; padding-bottom:5px; border-bottom:1px solid #eee; margin-bottom:10px;">Regras Configuradas</legend>
+        <div id="rulesList">
+            <p>Carregando regras...</p>
+        </div>
+    </div>
+
+    <hr style="margin-top:20px; margin-bottom:10px;">
+    <button onclick="google.script.host.close()">Fechar</button>
+    <div id="status"></div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', carregarRegras);
+
+        function carregarRegras() {
+            google.script.run
+                .withSuccessHandler(displayRules)
+                .withFailureHandler(showError)
+                .carregarRegrasValidacaoDados();
+        }
+
+        function displayRules(rulesArray) {
+            const listDiv = document.getElementById('rulesList');
+            listDiv.innerHTML = ''; // Limpa lista atual
+            if (!rulesArray || rulesArray.length === 0) {
+                listDiv.innerHTML = '<p>Nenhuma regra de validação configurada.</p>';
+                return;
+            }
+
+            rulesArray.forEach(function(rule) {
+                const item = document.createElement('div');
+                item.className = 'rule-item';
+                let details = `Aba: <strong>${rule.sheetName}</strong>, Coluna: <strong>${rule.columnHeader}</strong>, Tipo: <strong>${rule.type}</strong>`;
+                if (rule.type === 'LIST_FROM_RANGE' && rule.criteria) {
+                    details += `, Origem: ${rule.criteria.sourceRange}`;
+                }
+                // Adicionar mais detalhes para outros tipos de regra aqui
+                item.innerHTML = `<span class="rule-details">${details} (Permite Inválido: ${rule.allowInvalid ? 'Sim' : 'Não'})</span>`;
+                
+                const removeButton = document.createElement('button');
+                removeButton.textContent = 'Remover';
+                removeButton.onclick = function() { removerRegra(rule.id); }; // Usa o ID temporário
+                item.appendChild(removeButton);
+                listDiv.appendChild(item);
+            });
+        }
+
+        function adicionarRegra() {
+            const newRule = {
+                sheetName: document.getElementById('sheetName').value.trim(),
+                columnHeader: document.getElementById('columnHeader').value.trim(),
+                type: 'LIST_FROM_RANGE', // Por enquanto, apenas este tipo
+                criteria: {
+                    sourceRange: document.getElementById('sourceRange').value.trim()
+                },
+                allowInvalid: document.getElementById('allowInvalid').checked,
+                helpText: document.getElementById('helpText').value.trim()
+            };
+
+            if (!newRule.sheetName || !newRule.columnHeader || !newRule.criteria.sourceRange) {
+                alert("Os campos 'Nome da Aba', 'Cabeçalho da Coluna' e 'Intervalo de Origem' são obrigatórios.");
+                return;
+            }
+
+            showRuleStatus('Salvando regra...', '');
+            document.querySelector('button.action').disabled = true;
+            google.script.run
+                .withSuccessHandler(function(result){
+                    showRuleStatus(result.message, result.success ? 'success' : 'error');
+                    document.querySelector('button.action').disabled = false;
+                    if(result.success && result.rules) {
+                        displayRules(result.rules); // Atualiza a lista de regras
+                        // Limpa campos do formulário
+                        document.getElementById('sheetName').value = '';
+                        document.getElementById('columnHeader').value = '';
+                        document.getElementById('sourceRange').value = '';
+                        document.getElementById('helpText').value = '';
+                    }
+                })
+                .withFailureHandler(showErrorOnRule)
+                .salvarNovaRegraValidacaoDados(newRule);
+        }
+
+        function removerRegra(ruleId) {
+            if (!confirm("Tem certeza que deseja remover esta regra?")) return;
+            showRuleStatus('Removendo regra...', '');
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    showRuleStatus(result.message, result.success ? 'success' : 'error');
+                    if (result.success && result.rules) {
+                        displayRules(result.rules); // Atualiza a lista
+                    }
+                })
+                .withFailureHandler(showErrorOnRule)
+                .removerRegraValidacaoDados(ruleId);
+        }
+
+        function showResult(result) { /* Para status geral, se necessário */ }
+        function showError(error) { showStatus("Erro: " + (error.message || error), 'error'); }
+        function showStatus(message, className) { const statusDiv = document.getElementById('status'); statusDiv.textContent = message; statusDiv.className = className; }
+        function showErrorOnRule(error) { showRuleStatus("Erro: " + (error.message || error), 'error'); document.querySelector('button.action').disabled = false; }
+        function showRuleStatus(message, className) { const statusDiv = document.getElementById('ruleStatus'); statusDiv.textContent = message; statusDiv.className = className; }
+
+    </script>
+</body>
+</html>
