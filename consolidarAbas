@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <style>
+        body { padding: 15px; font-family: Arial, sans-serif; }
+        .container { max-width: 400px; margin: 0 auto; }
+        h4 { margin-top: 0; color: #4285f4;}
+        label { font-weight: bold; display: block; margin-top: 10px;}
+        input[type="text"] { width: 100%; padding: 8px; margin-bottom: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px;}
+        .checkbox-group { margin-top:10px; margin-bottom:15px; }
+        .checkbox-group label { display:inline; font-weight:normal; margin-left: 5px;}
+        #sheet-list { max-height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; margin-bottom: 15px; border-radius: 4px;}
+        .sheet-item label { display: block; }
+        button { margin-right: 10px; margin-top: 20px; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+        button.action { background-color: #4285f4; color: white; border: none;}
+        button.cancel { background-color: #f1f1f1; color: #333; border: 1px solid #ccc;}
+        #status { margin-top: 15px; font-weight: bold; }
+        .success { color: green; } .error { color: red; }
+    </style>
+    <? var sheetNames = sheetNames || []; ?>
+</head>
+<body>
+    <div class="container">
+        <h4>Consolidar Abas</h4>
+
+        <label for="sheet-list-container">Selecione as Abas para Consolidar:</label>
+        <div id="sheet-list">
+            <? if (sheetNames.length > 0) { ?>
+                <? sheetNames.forEach(function(name, index) { ?>
+                    <div class="sheet-item">
+                        <label>
+                            <input type="checkbox" name="selectedSheet" value="<?= name ?>" id="sheet_<?= index ?>">
+                            <?= name ?>
+                        </label>
+                    </div>
+                <? }); ?>
+            <? } else { ?>
+                <p>Nenhuma aba disponível para seleção (exceto abas protegidas pelo script).</p>
+            <? } ?>
+        </div>
+
+        <label for="newSheetName">Nome da Nova Aba Consolidada:</label>
+        <input type="text" id="newSheetName" name="newSheetName" value="Consolidada" required>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="includeHeaders" name="includeHeaders" checked>
+            <label for="includeHeaders">Incluir cabeçalhos (da primeira aba selecionada)</label>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="addSourceColumn" name="addSourceColumn">
+            <label for="addSourceColumn">Adicionar coluna com nome da aba de origem</label>
+        </div>
+
+        <div>
+            <button class="action" onclick="iniciarConsolidacao()" <?= sheetNames.length === 0 ? 'disabled' : '' ?>>Consolidar</button>
+            <button class="cancel" onclick="google.script.host.close()">Cancelar</button>
+        </div>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        function iniciarConsolidacao() {
+            var checkboxes = document.querySelectorAll('input[name="selectedSheet"]:checked');
+            var selectedNames = [];
+            checkboxes.forEach(function(checkbox) {
+                selectedNames.push(checkbox.value);
+            });
+
+            var newSheetName = document.getElementById('newSheetName').value.trim();
+            var includeHeaders = document.getElementById('includeHeaders').checked;
+            var addSourceColumn = document.getElementById('addSourceColumn').checked;
+            var statusDiv = document.getElementById('status');
+
+            if (selectedNames.length === 0) {
+                alert("Selecione ao menos uma aba para consolidar.");
+                return;
+            }
+            if (!newSheetName) {
+                 alert("O nome da nova aba consolidada é obrigatório.");
+                 return;
+            }
+
+            statusDiv.textContent = 'Consolidando abas...';
+            statusDiv.className = '';
+            document.querySelector('button.action').disabled = true;
+            document.querySelector('button.cancel').disabled = true;
+
+
+            google.script.run
+                .withSuccessHandler(function(result) {
+                     document.querySelector('button.action').disabled = false;
+                     document.querySelector('button.cancel').disabled = false;
+                     if (result && result.success) {
+                         statusDiv.textContent = result.message;
+                         statusDiv.className = 'success';
+                         // Fechar o diálogo após um breve sucesso
+                         setTimeout(function() { google.script.host.close(); }, 2500);
+                     } else {
+                         statusDiv.textContent = "Falha: " + (result ? result.message : "Erro desconhecido.");
+                         statusDiv.className = 'error';
+                     }
+                })
+                .withFailureHandler(function(error) {
+                    document.querySelector('button.action').disabled = false;
+                    document.querySelector('button.cancel').disabled = false;
+                    statusDiv.textContent = "Erro no script: " + error.message;
+                    statusDiv.className = 'error';
+                })
+                .executarConsolidacaoAbas(selectedNames, newSheetName, includeHeaders, addSourceColumn);
+        }
+    </script>
+</body>
+</html>
