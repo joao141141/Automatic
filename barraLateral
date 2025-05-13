@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <style>
+        body {
+            padding: 10px;
+            font-family: Arial, sans-serif;
+        }
+        .sidebar-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        .button-group {
+            margin-bottom: 15px;
+        }
+        .button-group-title {
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #4285f4; /* Google Blue */
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 8px;
+            text-align: left;
+        }
+        .status-message {
+            margin-top: 10px;
+            font-style: italic;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar-title">Ações Comuns</div>
+
+    <div class="button-group">
+        <div class="button-group-title">Pesquisas e Consultas</div>
+        <button onclick="callServerFunction('abrirDialogoPesquisa')">Pesquisar Texto Simples</button>
+        <button onclick="callServerFunction('iniciarPesquisaComPrompt')">Pesquisa Avançada</button>
+        <button onclick="callServerFunction('abrirDialogoConsulta')">Consultar por Identificador</button>
+    </div>
+
+    <div class="button-group">
+        <div class="button-group-title">Filtros</div>
+        <button onclick="callServerFunction('abrirDialogoFiltroAvancado')">Filtragem Detalhada</button>
+        <button onclick="callServerFunction('abrirDialogoFiltroData')">Filtrar por Datas</button>
+    </div>
+
+    <div class="button-group">
+        <div class="button-group-title">Ações em Lote</div>
+        <button onclick="callServerFunction('iniciarFormatacaoStatus')">Aplicar Formatação de Status</button>
+        <button onclick="callServerFunction('iniciarDeteccaoDuplicatas')">Detectar Duplicatas</button>
+    </div>
+
+    <div class="button-group">
+        <div class="button-group-title">Funcionalidades MI</div>
+        <button onclick="callServerFunction('adicionarMI')">Adicionar Nova MI</button>
+        <button onclick="callServerFunction('abrirDialogoLinkDocumentoMI')">Linkar Documento à MI</button>
+        <button onclick="callServerFunction('criarEventosAgendaDaAbaMI')">Criar Eventos Agenda (Aba MI)</button>
+        <button onclick="callServerFunction('gerarDocsDaAbaMI')">Gerar Documentos (Aba MI)</button>
+    </div>
+
+    <div class="button-group">
+        <div class="button-group-title">Configurações</div>
+        <button onclick="callServerFunction('abrirDialogoConfigMI')">Configurar MI / Drive</button>
+        <button onclick="callServerFunction('abrirDialogoConfigColunas')">Configurar Colunas de Pesquisa</button>
+        <button onclick="callServerFunction('abrirDialogoConfigFormatacao')">Configurar Formatação de Status</button>
+        <button onclick="callServerFunction('abrirDialogoConfigDuplicatas')">Configurar Detecção de Duplicatas</button>
+        <button onclick="callServerFunction('abrirDialogoConfigAgenda')">Configurar Integração Agenda</button>
+        <button onclick="callServerFunction('abrirDialogoConfigDocs')">Configurar Integração Docs</button>
+    </div>
+
+    <div id="sidebar-status" class="status-message"></div>
+
+    <script>
+        function callServerFunction(functionName) {
+            document.getElementById('sidebar-status').textContent = 'Processando...';
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    // Se a função do lado do servidor abrir um diálogo, não haverá resultado direto aqui.
+                    // Se for uma ação direta, você pode querer um feedback.
+                    if(result && result.message) { // Para funções que retornam {success: true/false, message: "..."}
+                        document.getElementById('sidebar-status').textContent = result.message;
+                    } else {
+                        document.getElementById('sidebar-status').textContent = 'Ação enviada.';
+                    }
+                    // Limpar mensagem após alguns segundos
+                    setTimeout(function() { document.getElementById('sidebar-status').textContent = ''; }, 3000);
+                })
+                .withFailureHandler(function(error) {
+                    document.getElementById('sidebar-status').textContent = 'Erro: ' + error.message;
+                })
+                [functionName](); // Chama a função do lado do servidor dinamicamente
+        }
+    </script>
+</body>
+</html>
