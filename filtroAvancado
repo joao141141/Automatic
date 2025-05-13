@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <style>
+        .form-group { margin-bottom: 15px; }
+        label { font-weight: bold; display: block; margin-bottom: 3px; }
+        input[type="text"], input[type="date"] { width: 95%; padding: 6px; }
+        .col-group { display: flex; gap: 10px; }
+        .col-group > div { flex: 1; }
+        button { margin-right: 10px; margin-top: 20px; }
+        .description { font-size: 0.9em; color: #666; margin-bottom: 15px;}
+        .config-note { font-size: 0.8em; color: #888; margin-top: 5px; }
+        #status { margin-top: 10px; font-style: italic; }
+    </style>
+</head>
+<body>
+    <h4>Filtragem Detalhada da Aba Ativa</h4>
+    <p class="description">
+        Preencha os campos pelos quais deseja filtrar. Deixe em branco os campos que não deseja usar como critério.
+        A busca por texto é case-insensitive e verifica se o texto *contém* o valor digitado.
+    </p>
+
+    <div class="form-group col-group">
+        <div>
+            <label for="dataInicio">Data Início:</label>
+            <input type="date" id="dataInicio" name="dataInicio">
+        </div>
+        <div>
+            <label for="dataFim">Data Fim:</label>
+            <input type="date" id="dataFim" name="dataFim">
+        </div>
+    </div>
+     <div class="form-group">
+        <label for="colData">Nome Coluna Data (Opcional, Padrão: 'Data'):</label>
+        <input type="text" id="colData" name="colData" placeholder="Deixe em branco para usar 'Data'">
+     </div>
+
+
+    <div class="form-group">
+        <label for="responsavel">Responsável (Contém):</label>
+        <input type="text" id="responsavel" name="responsavel">
+         <label for="colResponsavel">Nome Coluna Responsável (Opcional, Padrão: 'Responsável'):</label>
+         <input type="text" id="colResponsavel" name="colResponsavel" placeholder="Deixe em branco para usar 'Responsável'">
+    </div>
+
+    <div class="form-group">
+        <label for="acao">O que foi feito (Contém):</label>
+        <input type="text" id="acao" name="acao">
+        <label for="colAcao">Nome Coluna Ação (Opcional, Padrão: 'O que foi feito'):</label>
+        <input type="text" id="colAcao" name="colAcao" placeholder="Deixe em branco para usar 'O que foi feito'">
+    </div>
+
+     <div class="form-group">
+         <label for="secretaria">Secretaria (Contém):</label>
+         <input type="text" id="secretaria" name="secretaria">
+         <label for="colSecretaria">Nome Coluna Secretaria (Opcional, Padrão: 'Secretaria'):</label>
+         <input type="text" id="colSecretaria" name="colSecretaria" placeholder="Deixe em branco para usar 'Secretaria'">
+     </div>
+
+      <div class="form-group">
+          <label for="assuntoProcesso">Assunto / Nº Processo (Contém):</label>
+          <input type="text" id="assuntoProcesso" name="assuntoProcesso">
+          <label for="colAssuntoProcesso">Nome Coluna Assunto/Processo (Opcional, Padrão: 'Número do processo'):</label>
+          <input type="text" id="colAssuntoProcesso" name="colAssuntoProcesso" placeholder="Deixe em branco para usar 'Número do processo'">
+      </div>
+
+      <div class="form-group">
+          <label for="reiteracao">Reiteração (Contém):</label>
+          <input type="text" id="reiteracao" name="reiteracao">
+           <label for="colReiteracao">Nome Coluna Reiteração (Opcional, Padrão: 'Reiteração'):</label>
+           <input type="text" id="colReiteracao" name="colReiteracao" placeholder="Deixe em branco para usar 'Reiteração'">
+      </div>
+
+    <div>
+        <button class="action" onclick="aplicarFiltroAvancado()">Filtrar</button>
+        <button onclick="google.script.host.close()">Cancelar</button>
+    </div>
+     <div id="status"></div>
+
+    <script>
+        function aplicarFiltroAvancado() {
+            var filtros = {
+                dataInicio: document.getElementById('dataInicio').value || null,
+                dataFim: document.getElementById('dataFim').value || null,
+                responsavel: document.getElementById('responsavel').value.trim() || null,
+                acao: document.getElementById('acao').value.trim() || null,
+                secretaria: document.getElementById('secretaria').value.trim() || null,
+                assuntoProcesso: document.getElementById('assuntoProcesso').value.trim() || null,
+                reiteracao: document.getElementById('reiteracao').value.trim() || null,
+                // Column Headers (pass them to the server function)
+                 colData: document.getElementById('colData').value.trim() || null,
+                 colResponsavel: document.getElementById('colResponsavel').value.trim() || null,
+                 colAcao: document.getElementById('colAcao').value.trim() || null,
+                 colSecretaria: document.getElementById('colSecretaria').value.trim() || null,
+                 colAssuntoProcesso: document.getElementById('colAssuntoProcesso').value.trim() || null,
+                 colReiteracao: document.getElementById('colReiteracao').value.trim() || null
+            };
+
+             // Basic date validation
+             if (filtros.dataInicio && filtros.dataFim && new Date(filtros.dataInicio) > new Date(filtros.dataFim)) {
+                 alert("A data de início não pode ser posterior à data de fim.");
+                 return;
+             }
+              if ((filtros.dataInicio && !filtros.dataFim) || (!filtros.dataInicio && filtros.dataFim)) {
+                  alert("Se for filtrar por data, preencha tanto a Data Início quanto a Data Fim.");
+                  return;
+              }
+
+             var statusDiv = document.getElementById('status');
+             statusDiv.textContent = 'Filtrando...';
+             document.querySelector('button.action').disabled = true;
+
+            google.script.run
+                .withSuccessHandler(function() {
+                    google.script.host.close();
+                })
+                .withFailureHandler(function(error) {
+                    alert("Erro ao aplicar filtro: " + error.message);
+                    statusDiv.textContent = 'Erro ao filtrar.';
+                    document.querySelector('button.action').disabled = false;
+                })
+                .executarFiltroAvancado(filtros);
+        }
+    </script>
+</body>
+</html>
