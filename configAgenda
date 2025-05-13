@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+     <style>
+        /* ... (seu CSS existente) ... */
+        label { font-weight: bold; display: block; margin-top: 12px;}
+        input[type="text"] { width: 95%; padding: 5px; margin-bottom: 5px;}
+        /* ... */
+    </style>
+</head>
+<body>
+    <h4>Configurar Integração com Google Agenda</h4>
+    <p class="description">
+        Defina as colunas da aba MI usadas para criar/atualizar eventos na agenda.
+    </p>
+
+    <label for="dateColHeader">Cabeçalho Coluna Data Evento (Obrigatório):</label>
+    <input type="text" id="dateColHeader" name="dateColHeader" placeholder="Ex: Data Final, Prazo" required>
+
+    <label for="titleColHeader">Cabeçalho Coluna Título Evento (Obrigatório):</label>
+    <input type="text" id="titleColHeader" name="titleColHeader" placeholder="Ex: Num MI, Processo (ID MI se em branco)" required>
+
+    <label for="calendarId">ID da Agenda (Opcional):</label>
+    <input type="text" id="calendarId" name="calendarId" placeholder="Deixe em branco para agenda principal">
+    <p style="font-size:0.8em; color:#666;">Use 'primary' ou o email/ID completo da agenda.</p>
+
+    <label for="eventIdColHeader">Cabeçalho Coluna para Salvar ID do Evento da Agenda (Obrigatório):</label>
+    <input type="text" id="eventIdColHeader" name="eventIdColHeader" placeholder="Ex: ID Evento Agenda" required>
+    <p style="font-size:0.8em; color:#666;">Esta coluna será usada para atualizar/deletar eventos. Será criada se não existir.</p>
+
+
+    <div>
+        <button class="action" onclick="salvar()">Salvar Configuração</button>
+        <button onclick="google.script.host.close()">Cancelar</button>
+    </div>
+    <div id="status"></div>
+
+     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            google.script.run
+                .withSuccessHandler(function(config) {
+                    document.getElementById('dateColHeader').value = config.dateColHeader || '';
+                    document.getElementById('titleColHeader').value = config.titleColHeader || '';
+                    document.getElementById('calendarId').value = config.calendarId === 'primary' ? '' : (config.calendarId || '');
+                    // --- NOVA LINHA ---
+                    document.getElementById('eventIdColHeader').value = config.eventIdColHeader || 'ID Evento Agenda';
+                })
+                .withFailureHandler(showError)
+                .carregarConfigAgenda();
+        });
+
+        function salvar() {
+            var config = {
+                dateColHeader: document.getElementById('dateColHeader').value.trim(),
+                titleColHeader: document.getElementById('titleColHeader').value.trim(),
+                calendarId: document.getElementById('calendarId').value.trim() || 'primary',
+                // --- NOVA LINHA ---
+                eventIdColHeader: document.getElementById('eventIdColHeader').value.trim()
+            };
+            if (!config.dateColHeader || !config.titleColHeader || !config.eventIdColHeader) {
+                 alert("Cabeçalhos de Data, Título e ID do Evento são obrigatórios."); return;
+            }
+            showStatus('Salvando...', ''); document.querySelector('button.action').disabled = true;
+            google.script.run.withSuccessHandler(showResult).withFailureHandler(showError).salvarConfigAgenda(config);
+        }
+        function showResult(result) { showStatus(result.message, result.success ? 'success' : 'error'); if(result.success) { setTimeout(google.script.host.close, 1500); } else { document.querySelector('button.action').disabled = false; } }
+        function showError(error) { showStatus("Erro: " + (error.message || error), 'error'); document.querySelector('button.action').disabled = false; }
+        function showStatus(message, className) { const statusDiv = document.getElementById('status'); statusDiv.textContent = message; statusDiv.className = className; }
+    </script>
+</body>
+</html>
