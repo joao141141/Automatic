@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+     <style>
+      .branding-below { bottom: 56px; top: 0; }
+       label { font-weight: bold; margin-right: 10px; }
+       input[type="text"] { width: 80%; }
+       button { margin-top: 15px; }
+       #status { margin-top: 10px; font-style: italic; }
+    </style>
+  </head>
+  <body>
+    <div class="block form-group">
+      <label for="termoBusca">Pesquisar por:</label>
+      <input type="text" id="termoBusca" name="termoBusca" required>
+    </div>
+
+     <div class="block">
+       <button class="action" onclick="pesquisar()">Pesquisar</button>
+       <button onclick="google.script.host.close()">Cancelar</button>
+     </div>
+     <div id="status"></div>
+
+    <script>
+      function pesquisar() {
+        var termo = document.getElementById('termoBusca').value;
+         var statusDiv = document.getElementById('status');
+        if (!termo) {
+          alert('Por favor, digite o termo a ser pesquisado.');
+          return;
+        }
+        // Show thinking message and disable button
+        statusDiv.textContent = 'Pesquisando...';
+         document.querySelector('button.action').disabled = true;
+
+        google.script.run
+          .withSuccessHandler(function(message) {
+             statusDiv.textContent = message; // Display success message
+             // Optionally close after a delay or keep open to show message
+              setTimeout(function() { google.script.host.close(); }, 2000);
+          })
+          .withFailureHandler(function(error) {
+             alert('Erro ao pesquisar: ' + error.message);
+             statusDiv.textContent = 'Erro ao pesquisar.';
+             document.querySelector('button.action').disabled = false; // Re-enable
+          })
+          .executarPesquisa(termo); // Use executarPesquisa
+      }
+    </script>
+  </body>
+</html>
