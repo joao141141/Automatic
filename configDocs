@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+     <style>
+        label { font-weight: bold; display: block; margin-top: 10px;}
+        input[type="text"], textarea { width: 95%; padding: 5px; margin-bottom: 5px;}
+        textarea { height: 100px; }
+        button { margin-right: 10px; margin-top: 20px; }
+        #status { margin-top: 15px; font-weight: bold; }
+        .success { color: green; } .error { color: red; }
+        .description { font-size: 0.9em; color: #666; margin-bottom: 15px;}
+    </style>
+</head>
+<body>
+    <h4>Configurar Integração com Google Docs</h4>
+    <p class="description">
+        Defina as condições e o conteúdo para gerar documentos a partir da aba MI.
+    </p>
+
+    <label for="statusColHeader">Cabeçalho Coluna Status (Obrigatório):</label>
+    <input type="text" id="statusColHeader" name="statusColHeader" placeholder="Ex: Status MI" required>
+
+    <label for="triggerStatusValue">Valor do Status Gatilho (Obrigatório):</label>
+    <input type="text" id="triggerStatusValue" name="triggerStatusValue" placeholder="Ex: Finalizado, Concluído" required>
+
+    <label for="saveFolderId">ID Pasta Destino Docs no Drive (Obrigatório):</label>
+    <input type="text" id="saveFolderId" name="saveFolderId" required>
+
+    <label for="templateId">ID Documento Modelo Google Docs (Opcional):</label>
+    <input type="text" id="templateId" name="templateId" placeholder="Deixe em branco para criar Doc vazio">
+
+     <label for="includeColsString">Cabeçalhos das Colunas a Incluir (um por linha):</label>
+    <textarea id="includeColsString" name="includeColsString" placeholder="Exemplo:&#10;Num MI&#10;Assunto&#10;Responsável&#10;Data Final"></textarea>
+
+    <div>
+        <button class="action" onclick="salvar()">Salvar Configuração</button>
+        <button onclick="google.script.host.close()">Cancelar</button>
+    </div>
+    <div id="status"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            google.script.run
+                .withSuccessHandler(function(config) {
+                    document.getElementById('statusColHeader').value = config.statusColHeader || '';
+                    document.getElementById('triggerStatusValue').value = config.triggerStatusValue || '';
+                    document.getElementById('saveFolderId').value = config.saveFolderId || '';
+                    document.getElementById('templateId').value = config.templateId || '';
+                    document.getElementById('includeColsString').value = config.includeColsString || '';
+                })
+                .withFailureHandler(showError)
+                .carregarConfigDocs();
+        });
+
+        function salvar() {
+            var config = {
+                statusColHeader: document.getElementById('statusColHeader').value.trim(),
+                triggerStatusValue: document.getElementById('triggerStatusValue').value.trim(),
+                saveFolderId: document.getElementById('saveFolderId').value.trim(),
+                templateId: document.getElementById('templateId').value.trim(),
+                includeColsString: document.getElementById('includeColsString').value // Pass string as is
+            };
+            if (!config.statusColHeader || !config.triggerStatusValue || !config.saveFolderId) { alert("Status, Valor Gatilho e ID Pasta Destino são obrigatórios."); return; }
+            if (!document.getElementById('includeColsString').value.trim()) { alert("Informe ao menos uma coluna para incluir no Doc."); return;}
+
+            showStatus('Salvando...', ''); document.querySelector('button.action').disabled = true;
+            google.script.run.withSuccessHandler(showResult).withFailureHandler(showError).salvarConfigDocs(config);
+        }
+        // Include showResult, showError, showStatus functions
+        function showResult(result) { showStatus(result.message, result.success ? 'success' : 'error'); if(result.success) { setTimeout(google.script.host.close, 1500); } else { document.querySelector('button.action').disabled = false; } }
+        function showError(error) { showStatus("Erro: " + error.message, 'error'); document.querySelector('button.action').disabled = false; }
+        function showStatus(message, className) { const statusDiv = document.getElementById('status'); statusDiv.textContent = message; statusDiv.className = className; }
+    </script>
+</body>
+</html>
